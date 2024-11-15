@@ -1,4 +1,3 @@
-// src/Login.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import { message } from 'antd';
@@ -16,6 +15,8 @@ function Login() {
         email,
         password,
       });
+
+      localStorage.setItem('token', response.data.token);
 
       if (response.status === 200) {
         message.success('Login successful!');

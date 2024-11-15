@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios'; // Import axios
+import axios from 'axios'; 
 import { useNavigate } from 'react-router-dom'; 
 import { message } from 'antd';
 
@@ -20,10 +20,9 @@ const SignUp = () => {
 
       if (response.status === 201) {
         message.success("User signed up successfully!");
-        // Delay the navigation to '/login' after the alert
         setTimeout(() => {
           handleRedirectToLogin();
-        }, 1000); // Delay for 1 second (adjust as needed)
+        }, 1000); 
       } else {
         alert(response.data.msg);
       }

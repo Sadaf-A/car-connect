@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import { message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 
 const AddCar = () => {
   const [title, setTitle] = useState('');
@@ -6,22 +9,89 @@ const AddCar = () => {
   const [year, setYear] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // State for images
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleImageUpload = (event) => {
+  // Handle image file selection
+  const handleImageChange = (event) => {
     const files = event.target.files;
-    const previewContainer = document.getElementById('imagePreviewContainer');
-    previewContainer.innerHTML = ''; // Clear previous previews
+    setImages(Array.from(files)); // Convert FileList to array
+  };
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
+  // Function to upload images to cloud and get URLs
+  const uploadImages = async (imageFiles) => {
+    try {
+      const formData = new FormData();
+      imageFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+
+      const response = await axios.post('http://localhost:5000/api/cars/add-car', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data.imageUrls; // Assume your backend returns the uploaded image URLs
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      message.error('Failed to upload images. Please try again.');
+      throw new Error('Image upload failed');
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+  
+    // Basic validation
+    if (!title || !carNumber || !year || !price || !description) {
+      message.error('All fields must be filled!');
+      setLoading(false);
+      return;
+    }
+  
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        message.error('You must be logged in to add a car!');
+        navigate('/'); // Redirect to login if no token
+        return;
+      }
+  
+      // Prepare form data
+      const formData = new FormData();
       
-      reader.onload = function (e) {
-        setImages((prevImages) => [...prevImages, e.target.result]);
-      };
-
-      reader.readAsDataURL(file); // Read the file as a data URL
+      // Append regular form fields to FormData
+      formData.append('title', title);
+      formData.append('carNumber', carNumber);
+      formData.append('year', year);
+      formData.append('price', price);
+      formData.append('description', description);
+  
+      // If there are images, append them to FormData
+      images.forEach((file) => {
+        formData.append('images', file);
+      });
+  
+      // Make API call to add car
+      const response = await axios.post('http://localhost:5000/api/cars/add-car', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (response.data) {
+        message.success('Car added successfully!');
+        navigate('/product-list');
+      }
+    } catch (error) {
+      console.error('Error adding car:', error);
+      message.error('Failed to add car. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,100 +132,115 @@ const AddCar = () => {
             </div>
 
             {/* Form Fields */}
-            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-              <label className="flex flex-col min-w-40 flex-1">
-                <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Title</p>
+            <form onSubmit={handleSubmit}>
+              {/* Title Field */}
+              <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                <label className="flex flex-col min-w-40 flex-1">
+                  <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Title</p>
+                  <input
+                    placeholder="Enter a title"
+                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {/* Car Number Field */}
+              <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                <label className="flex flex-col min-w-40 flex-1">
+                  <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Car Number</p>
+                  <input
+                    placeholder="Enter car number"
+                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
+                    value={carNumber}
+                    onChange={(e) => setCarNumber(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {/* Year Field */}
+              <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                <label className="flex flex-col min-w-40 flex-1">
+                  <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Year</p>
+                  <input
+                    placeholder="Enter year"
+                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {/* Price Field */}
+              <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                <label className="flex flex-col min-w-40 flex-1">
+                  <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Price</p>
+                  <input
+                    placeholder="Enter price"
+                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {/* Description Field */}
+              <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+                <label className="flex flex-col min-w-40 flex-1">
+                  <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Description</p>
+                  <textarea
+                    placeholder="Write a description"
+                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-auto placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {/* Image Upload */}
+              <div className="flex flex-col w-[400px] max-w-[400px] p-5 rounded-xl">
+                <p className="text-[#FFFFFF] text-lg font-bold mb-5">Upload Images</p>
+
                 <input
-                  placeholder="Enter a title"
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  type="file"
+                  id="imageUpload"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
-              </label>
-            </div>
 
-            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-              <label className="flex flex-col min-w-40 flex-1">
-                <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Car Number</p>
-                <input
-                  placeholder="Enter a car number"
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
-                  value={carNumber}
-                  onChange={(e) => setCarNumber(e.target.value)}
-                />
-              </label>
-            </div>
+                <label
+                  htmlFor="imageUpload"
+                  className="cursor-pointer flex items-center justify-center h-14 bg-[#EA2831] text-[#FFFFFF] rounded-xl text-base font-bold leading-normal tracking-[0.015em]"
+                >
+                  Click to Upload Images
+                </label>
 
-            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-              <label className="flex flex-col min-w-40 flex-1">
-                <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Year</p>
-                <input
-                  placeholder="Enter the year"
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-              <label className="flex flex-col min-w-40 flex-1">
-                <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Price</p>
-                <input
-                  placeholder="Enter the price"
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-14 placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-              <label className="flex flex-col min-w-40 flex-1">
-                <p className="text-[#FFFFFF] text-base font-medium leading-normal pb-2">Description</p>
-                <textarea
-                  placeholder="Write a description"
-                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#FFFFFF] focus:outline-0 focus:ring-0 border border-[#303030] bg-[#212121] focus:border-[#303030] h-auto placeholder:text-[#ABABAB] p-[15px] text-base font-normal leading-normal"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex px-4 py-3">
-              <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 flex-1 bg-[#EA2831] text-[#FFFFFF] text-base font-bold leading-normal tracking-[0.015em]">
-                <span className="truncate">Submit</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Right Side: Image Upload Box */}
-          <div className="flex flex-col w-[400px] max-w-[400px] p-5 rounded-xl">
-            <p className="text-[#FFFFFF] text-lg font-bold mb-5">Upload Images</p>
-
-            {/* Hidden file input */}
-            <input type="file" id="imageUpload" multiple accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-
-            {/* Label that triggers file input */}
-            <label
-              htmlFor="imageUpload"
-              className="cursor-pointer text-[#EA2831] text-center border-2 border-[#EA2831] py-2 px-4 rounded-xl"
-            >
-              Select Images
-            </label>
-
-            {/* Preview container */}
-            <div
-              id="imagePreviewContainer"
-              className="flex flex-wrap justify-center gap-4 mt-4"
-            >
-              {images.map((image, index) => (
-                <div key={index} className="w-[120px] h-[120px] bg-[#303030] rounded-xl overflow-hidden">
-                  <img src={image} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                <div id="imagePreviewContainer" className="mt-4 flex flex-wrap gap-4">
+                  {images.map((image, index) => (
+                    <img
+                      key={index}
+                      src={URL.createObjectURL(image)}
+                      alt="Preview"
+                      className="w-[100px] h-[100px] object-cover rounded-xl"
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex px-4 py-3">
+                <button
+                  type="submit"
+                  className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-5 flex-1 bg-[#EA2831] text-[#FFFFFF] text-base font-bold leading-normal tracking-[0.015em] ${loading ? 'opacity-50' : ''}`}
+                  disabled={loading}
+                >
+                  <span className="truncate">{loading ? 'Submitting...' : 'Submit'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

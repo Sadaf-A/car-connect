@@ -4,7 +4,34 @@ const User = require('../models/User');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 
-// Register Route (POST /register)
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     description: Create a new user account
+ *     tags: Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Invalid input
+ *       500:
+ *         description: Internal Server Error
+ */
 router.post('/register', async (req, res) => {
     const { name, email, password } = req.body;
   
@@ -29,7 +56,39 @@ router.post('/register', async (req, res) => {
     }
   });
   
-// Login Route (POST /login)
+  /**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login a user
+ *     description: Authenticate the user and return a JWT token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successful login with token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       401:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Internal Server Error
+ */
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {

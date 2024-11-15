@@ -1,27 +1,56 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { message } from 'antd'; 
+import { useNavigate } from 'react-router-dom'; 
 
 const CarConnect = () => {
-  const cars = [
-    { title: "2020 Tesla Model 3", description: "$35,000", imageUrl: "https://cdn.usegalileo.ai/stability/ce6105e2-8983-4606-bc6b-495087aec9f4.png" },
-    { title: "2018 Audi A4", description: "$28,000", imageUrl: "https://cdn.usegalileo.ai/sdxl10/8de25aba-7131-434b-886a-1e45fed59f30.png" },
-    { title: "2016 Ford Mustang", description: "$20,000", imageUrl: "https://cdn.usegalileo.ai/stability/c5d5fc3a-2356-4a2f-a6f9-e264897a025d.png" },
-    { title: "2019 BMW X5", description: "$55,000", imageUrl: "https://cdn.usegalileo.ai/stability/3d8aa091-b28c-42a8-b0c5-8dde610f9885.png" }
-  ];
+  const [cars, setCars] = useState([]); 
+  const [filteredCars, setFilteredCars] = useState([]); 
+  const [title, setTitle] = useState(''); 
+  const [description, setDescription] = useState(''); 
+  const [loading, setLoading] = useState(true); 
+  const navigate = useNavigate(); 
 
-  const [filteredCars, setFilteredCars] = useState(cars);
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const token = localStorage.getItem('token'); 
+        if (!token) {
+          navigate('/');
+          return;
+        }
+        const response = await axios.get('http://localhost:5000/api/cars/get-cars', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCars(response.data); 
+        setFilteredCars(response.data); 
+        setLoading(false); 
+      } catch (error) {
+        console.error('Error fetching cars:', error);
+        setLoading(false);
+        message.error('Failed to fetch cars. Please try again.');
+      }
+    };
+
+    fetchCars();
+  }, [navigate]);
 
   const searchCars = (event) => {
     const searchQuery = event.target.value.toLowerCase();
     const result = cars.filter(car => 
-      car.title.toLowerCase().includes(searchQuery) || 
+      car.title.toLowerCase().includes(searchQuery) ||
       car.description.toLowerCase().includes(searchQuery)
     );
     setFilteredCars(result);
   };
 
-  useEffect(() => {
-    setFilteredCars(cars); // Set the initial list of cars on mount
-  }, []);
+  const handleAddCar = async () => {
+    navigate('/add-car');
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="relative flex size-full min-h-screen flex-col bg-black dark group/design-root overflow-x-hidden" style={{ fontFamily: 'Manrope, Noto Sans, sans-serif' }}>
@@ -33,24 +62,20 @@ const CarConnect = () => {
           <div className="flex flex-1 justify-end gap-8">
             <div className="flex items-center gap-9">
               <a className="text-[#FFFFFF] text-sm font-medium leading-normal" href="#">Home</a>
-              <a className="text-[#FFFFFF] text-sm font-medium leading-normal" href="#">Documentation</a>
-              <a className="text-[#FFFFFF] text-sm font-medium leading-normal" href="login.html">Login</a>
+              <a className="text-[#FFFFFF] text-sm font-medium leading-normal" href="http://localhost:5000/api-docs">Documentation</a>
+              <a className="text-[#FFFFFF] text-sm font-medium leading-normal" href="/">Login</a>
             </div>
             <div className="flex gap-2">
-              <a
-                href="addcar.html"
+              <button
+                onClick={handleAddCar}
                 className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#EA2831] text-[#FFFFFF] text-sm font-bold leading-normal tracking-[0.015em]"
               >
-                <span className="truncate">+Add New Car</span>
-              </a>           
-              <button
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#292929] text-[#FFFFFF] text-sm font-bold leading-normal tracking-[0.015em]"
-              >
-                <span className="truncate">FAQ</span>
+                <span className="truncate">+ Add New Car</span>
               </button>
             </div>
           </div>
         </header>
+
         <div className="px-40 flex flex-1 justify-center py-5">
           <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
             <div className="flex flex-wrap justify-between gap-3 p-4">
@@ -73,17 +98,54 @@ const CarConnect = () => {
                 </div>
               </label>
             </div>
+
+            {/* Display the list of filtered cars */}
             <div id="car-list" className="grid grid-cols-[repeat(auto-fit,minmax(158px,1fr))] gap-3 p-4">
-              {filteredCars.map((car, index) => (
-                <div key={index} className="flex flex-col gap-3 pb-3">
-                  <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-xl" style={{ backgroundImage: `url(${car.imageUrl})` }}></div>
-                  <div>
-                    <p className="text-[#FFFFFF] text-base font-medium leading-normal">{car.title}</p>
-                    <p className="text-[#ABABAB] text-sm font-normal leading-normal">{car.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+  {filteredCars.map((car, index) => (
+                    <div
+                  key={index}
+                  className="flex flex-col gap-3 pb-3 cursor-pointer"
+                  onClick={() => navigate(`/car-details/${car._id}`)} // Navigate to the details page on click
+                >
+      {/* Render the images */}
+      {car.imageUrls && car.imageUrls.length > 0 && (
+        
+        <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-xl">
+          <img
+            src={car.imageUrls[0]} 
+            alt={car.title}
+            className="w-full h-full object-cover rounded-xl"
+          />
+        </div>
+      )}
+      
+      {/* Car Information */}
+      <div className="flex flex-col gap-2">
+        {/* Car Title */}
+        <p className="text-[#FFFFFF] text-base font-medium leading-normal">{car.title}</p>
+
+        {/* Car Description */}
+        <p className="text-[#ABABAB] text-sm font-normal leading-normal">{car.description}</p>
+
+        {/* Car Number */}
+        <p className="text-[#ABABAB] text-sm font-normal leading-normal">Car Number: {car.carNumber}</p>
+
+        {/* Car Year */}
+        <p className="text-[#ABABAB] text-sm font-normal leading-normal">Year: {car.year}</p>
+
+        {/* Car Price */}
+        <p className="text-[#EA2831] text-lg font-bold leading-normal">Price: ${car.price}</p>
+        
+        {/* Optionally, you can add any other fields you have for the car */}
+        {/* Example: Car Condition */}
+        {car.condition && (
+          <p className="text-[#ABABAB] text-sm font-normal leading-normal">Condition: {car.condition}</p>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
+
           </div>
         </div>
       </div>
